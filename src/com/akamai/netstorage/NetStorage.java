@@ -48,278 +48,313 @@ public class NetStorage {
     public String key;
     public Boolean useSSL;
 
-    public NetStorage(String hostname, String username, String key) {
-        this(hostname, username, key, false);
-    }
+	public String proxyHostname;
+	public Integer proxyPort;
 
-    public NetStorage(String hostname, String username, String key, Boolean useSSL) {
-        this.setHostName(hostname);
-        this.setUsername(username);
-        this.setKey(key);
-        this.setUseSSL(useSSL);
-    }
+	public NetStorage(String hostname, String username, String key) {
+		this(hostname, username, key, false);
+	}
 
-    public String getHostName() {
-        return hostName;
-    }
+	public NetStorage(String hostname, String username, String key, String proxyHostname, Integer proxyPort) {
+		this(hostname, username, key, false, proxyHostname, proxyPort);
+	}
 
-    public void setHostName(String hostName) {
-        this.hostName = hostName;
-    }
+	public NetStorage(String hostname, String username, String key, Boolean useSSL) {
+		this.setHostName(hostname);
+		this.setUsername(username);
+		this.setKey(key);
+		this.setUseSSL(useSSL);
+	}
 
-    public String getUsername() {
-        return username;
-    }
+	public NetStorage(String hostname, String username, String key, Boolean useSSL, String proxyHostname, Integer proxyPort) {
+		this.setHostName(hostname);
+		this.setUsername(username);
+		this.setKey(key);
+		this.setUseSSL(useSSL);
+		this.setProxyHostname(proxyHostname);
+		this.setProxyPort(proxyPort);
+	}
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+	public String getProxyHostname() {
+		return proxyHostname;
+	}
 
-    public String getKey() {
-        return key;
-    }
+	public NetStorage setProxyHostname(String proxyHostname) {
+		this.proxyHostname = proxyHostname;
+		return this;
+	}
 
-    public void setKey(String key) {
-        this.key = key;
-    }
+	public Integer getProxyPort() {
+		return proxyPort;
+	}
 
-    public Boolean getUseSSL() {
-        return useSSL;
-    }
+	public NetStorage setProxyPort(Integer proxyPort) {
+		this.proxyPort = proxyPort;
+		return this;
+	}
 
-    public void setUseSSL(Boolean useSSL) {
-        this.useSSL = useSSL;
-    }
+	public String getHostName() {
+		return hostName;
+	}
 
-    protected URL getNetstorageUri(String path) {
-        try {
-            if (!path.startsWith("/")) path = "/" + path;
-            return new URL(this.getUseSSL() ? "HTTPS" : "HTTP", this.getHostName(), path);
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("This should never Happened! Protocols are locked to HTTPS and HTTP!", e);
-        }
-    }
+	public void setHostName(String hostName) {
+		this.hostName = hostName;
+	}
 
-    protected InputStream execute(String method, String path, APIEventBean acsParams, InputStream uploadStream, Long size) throws NetStorageException {
-        return new NetStorageCMSv35Signer(
-                method,
-                this.getNetstorageUri(path),
-                this.getUsername(),
-                this.getKey(),
-                acsParams,
-                uploadStream,
-                size != null && size > 0 ? size : -1
-                ).execute();
-    }
+	public String getUsername() {
+		return username;
+	}
 
-    public NetStorageType getNetStorageType() throws NetStorageException {
-    	return new NetStorageCMSv35Signer( null, getNetstorageUri(""), getUsername(), getKey(), new APIEventBean()).getNetStorageType();
-    }
+	public void setUsername(String username) {
+		this.username = username;
+	}
 
-    protected InputStream execute(String method, String path, APIEventBean acsParams) throws NetStorageException {
-        return execute(method, path, acsParams, null, null);
-    }
+	public String getKey() {
+		return key;
+	}
 
-    public boolean delete(String path) throws NetStorageException, IOException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("delete");
-        try(InputStream inputStream = execute("POST", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	public void setKey(String key) {
+		this.key = key;
+	}
 
-    public InputStream dir(String path) throws NetStorageException {
-        return dir(path, "xml");
-    }
+	public Boolean getUseSSL() {
+		return useSSL;
+	}
 
-    public InputStream dir(String path, String format) throws NetStorageException {
-        return dir(path, format, null);
-    }
+	public void setUseSSL(Boolean useSSL) {
+		this.useSSL = useSSL;
+	}
 
-    public InputStream dir(String path, String format, Map<String, String> additionalParams) throws NetStorageException{
-        APIEventBean action = new APIEventBean();
-        action.setAction("dir");
-        if(null != additionalParams) {
-           action.setAdditionalParams(additionalParams);
-        }
-        action.setFormat(format);
-        return execute("GET", path, action);
-    }
+	protected URL getNetstorageUri(String path) {
+		try {
+			if (!path.startsWith("/"))
+				path = "/" + path;
+			return new URL(this.getUseSSL() ? "HTTPS" : "HTTP", this.getHostName(), path);
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException("This should never Happened! Protocols are locked to HTTPS and HTTP!", e);
+		}
+	}
 
-    public InputStream download(String path) throws NetStorageException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("download");
-        return execute("GET", path, action);
-    }
+	protected InputStream execute(String method, String path, APIEventBean acsParams, InputStream uploadStream, Long size)
+			throws NetStorageException {
+		return new NetStorageCMSv35Signer(method, this.getNetstorageUri(path), this.getUsername(), this.getKey(), acsParams,
+				uploadStream, size != null && size > 0 ? size : -1, this.getProxyHostname(), this.getProxyPort()).execute();
+	}
 
-    public InputStream du(String path) throws NetStorageException {
-        return du(path, "xml");
-    }
-    public InputStream du(String path, String format) throws NetStorageException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("du");
-        action.setFormat(format);
-        return execute("GET", path, action);
-    }
+	public NetStorageType getNetStorageType() throws NetStorageException {
+		return new NetStorageCMSv35Signer(null, getNetstorageUri(""), getUsername(), getKey(), new APIEventBean())
+				.getNetStorageType();
+	}
 
-    public boolean mkdir(String path) throws NetStorageException, IOException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("mkdir");
-        try (InputStream inputStream = execute("PUT", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	protected InputStream execute(String method, String path, APIEventBean acsParams) throws NetStorageException {
+		return execute(method, path, acsParams, null, null);
+	}
 
-    public boolean mtime(String path) throws NetStorageException, IOException {
-        return mtime(path, null);
-    }
+	public boolean delete(String path) throws NetStorageException, IOException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("delete");
+		try (InputStream inputStream = execute("POST", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public boolean mtime(String path, Date mtime) throws NetStorageException, IOException {
-        //TODO: verify that this is for a file - cannot mtime on symlinks or dirs
-        if (mtime == null)
-            mtime = new Date();
+	public InputStream dir(String path) throws NetStorageException {
+		return dir(path, "xml");
+	}
 
-        APIEventBean action = new APIEventBean();
-        action.setAction("mtime");
-        action.setMtime(mtime);
-        try (InputStream inputStream = execute("PUT", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	public InputStream dir(String path, String format) throws NetStorageException {
+		return dir(path, format, null);
+	}
 
-    public boolean rename(String originalPath, String newPath) throws NetStorageException, IOException {
-        //TODO: validate path and destination start with the same cpcode
+	public InputStream dir(String path, String format, Map<String, String> additionalParams) throws NetStorageException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("dir");
+		if (null != additionalParams) {
+			action.setAdditionalParams(additionalParams);
+		}
+		action.setFormat(format);
+		return execute("GET", path, action);
+	}
 
-        APIEventBean action = new APIEventBean();
-        action.setAction("rename");
-        action.setDestination(newPath);
+	public InputStream download(String path) throws NetStorageException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("download");
+		return execute("GET", path, action);
+	}
 
-        try (InputStream inputStream = execute("PUT", originalPath, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	public InputStream du(String path) throws NetStorageException {
+		return du(path, "xml");
+	}
 
-    public boolean rmdir(String path) throws NetStorageException, IOException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("rmdir");
-        try (InputStream inputStream = execute("POST", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	public InputStream du(String path, String format) throws NetStorageException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("du");
+		action.setFormat(format);
+		return execute("GET", path, action);
+	}
 
+	public boolean mkdir(String path) throws NetStorageException, IOException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("mkdir");
+		try (InputStream inputStream = execute("PUT", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public InputStream stat(String path) throws NetStorageException {
-        return stat(path, "xml");
-    }
+	public boolean mtime(String path) throws NetStorageException, IOException {
+		return mtime(path, null);
+	}
 
-    public InputStream stat(String path, String format) throws NetStorageException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("stat");
-        action.setFormat(format);
+	public boolean mtime(String path, Date mtime) throws NetStorageException, IOException {
+		//TODO: verify that this is for a file - cannot mtime on symlinks or dirs
+		if (mtime == null)
+			mtime = new Date();
 
-        return execute("GET", path, action);
-    }
+		APIEventBean action = new APIEventBean();
+		action.setAction("mtime");
+		action.setMtime(mtime);
+		try (InputStream inputStream = execute("PUT", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public boolean symlink(String path, String target) throws NetStorageException, IOException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("symlink");
-        action.setTarget(target);
-        try (InputStream inputStream = execute("PUT", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+	public boolean rename(String originalPath, String newPath) throws NetStorageException, IOException {
+		//TODO: validate path and destination start with the same cpcode
 
-    public boolean quickDelete(String path) throws NetStorageException, IOException {
-        APIEventBean action = new APIEventBean();
-        action.setAction("quick-delete");
-        action.setQuickDelete("imreallyreallysure");
+		APIEventBean action = new APIEventBean();
+		action.setAction("rename");
+		action.setDestination(newPath);
 
-        try (InputStream inputStream = execute("PUT", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+		try (InputStream inputStream = execute("PUT", originalPath, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public boolean upload(String path, InputStream uploadFileStream) throws NetStorageException, IOException {
-    	return upload(path, uploadFileStream, null, new Date(), null, null, null, null, false);
-    }
+	public boolean rmdir(String path) throws NetStorageException, IOException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("rmdir");
+		try (InputStream inputStream = execute("POST", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public boolean upload(String path, InputStream uploadFileStream, Date mtime, Long size, byte[] md5Checksum, byte[] sha1Checksum, byte[] sha256Checksum, boolean indexZip) throws NetStorageException, IOException {
-    	return upload(path, uploadFileStream, null, mtime, size, md5Checksum, sha1Checksum, sha256Checksum, indexZip);
-    }
+	public InputStream stat(String path) throws NetStorageException {
+		return stat(path, "xml");
+	}
 
-    public boolean upload(String path, InputStream uploadFileStream, Map<String, String> additionalParams, Date mtime, Long size, byte[] md5Checksum, byte[] sha1Checksum, byte[] sha256Checksum, boolean indexZip) throws NetStorageException, IOException {
+	public InputStream stat(String path, String format) throws NetStorageException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("stat");
+		action.setFormat(format);
 
-        APIEventBean action = new APIEventBean();
+		return execute("GET", path, action);
+	}
+
+	public boolean symlink(String path, String target) throws NetStorageException, IOException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("symlink");
+		action.setTarget(target);
+		try (InputStream inputStream = execute("PUT", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
+
+	public boolean quickDelete(String path) throws NetStorageException, IOException {
+		APIEventBean action = new APIEventBean();
+		action.setAction("quick-delete");
+		action.setQuickDelete("imreallyreallysure");
+
+		try (InputStream inputStream = execute("PUT", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
+
+	public boolean upload(String path, InputStream uploadFileStream) throws NetStorageException, IOException {
+		return upload(path, uploadFileStream, null, new Date(), null, null, null, null, false);
+	}
+
+	public boolean upload(String path, InputStream uploadFileStream, Date mtime, Long size, byte[] md5Checksum, byte[] sha1Checksum,
+			byte[] sha256Checksum, boolean indexZip) throws NetStorageException, IOException {
+		return upload(path, uploadFileStream, null, mtime, size, md5Checksum, sha1Checksum, sha256Checksum, indexZip);
+	}
+
+	public boolean upload(String path, InputStream uploadFileStream, Map<String, String> additionalParams, Date mtime, Long size,
+			byte[] md5Checksum, byte[] sha1Checksum, byte[] sha256Checksum, boolean indexZip)
+			throws NetStorageException, IOException {
+
+		APIEventBean action = new APIEventBean();
 
 		action.setAction("upload");
 		action.setAdditionalParams(additionalParams);
-        action.setMtime(mtime);
-        action.setSize(size);
-        action.setMd5(md5Checksum);
-        action.setSha1(sha1Checksum);
-        action.setSha256(sha256Checksum);
-        action.setIndexZip(indexZip ? indexZip : null);
+		action.setMtime(mtime);
+		action.setSize(size);
+		action.setMd5(md5Checksum);
+		action.setSha1(sha1Checksum);
+		action.setSha256(sha256Checksum);
+		action.setIndexZip(indexZip ? indexZip : null);
 
-        // sanity check to ensure that indexZip is only true if the file destination is also a zip.
-        // probably should throw an exception or warning instead.
-        if (action.getIndexZip() != null && action.getIndexZip() && !path.endsWith(".zip"))
-            action.setIndexZip(null);
+		// sanity check to ensure that indexZip is only true if the file destination is also a zip.
+		// probably should throw an exception or warning instead.
+		if (action.getIndexZip() != null && action.getIndexZip() && !path.endsWith(".zip"))
+			action.setIndexZip(null);
 
-        // size is not supported with zip since the index-zip funtionality mutates the file thus inconsistency on which size value to use
-        // probably should throw an exception or a warning
-        if (action.getSize() != null && action.getIndexZip() != null && action.getIndexZip())
-            action.setSize(null);
+		// size is not supported with zip since the index-zip funtionality mutates the file thus inconsistency on which size value to use
+		// probably should throw an exception or a warning
+		if (action.getSize() != null && action.getIndexZip() != null && action.getIndexZip())
+			action.setSize(null);
 
-        try (InputStream inputStream = execute("PUT", path, action, uploadFileStream, size)) {
-            readToEnd(inputStream);
-        }
-        return true;
-    }
+		try (InputStream inputStream = execute("PUT", path, action, uploadFileStream, size)) {
+			readToEnd(inputStream);
+		}
+		return true;
+	}
 
-    public boolean upload(String path, File srcFile) throws NetStorageException, IOException {
-        return this.upload(path, srcFile, null, false);
-    }
+	public boolean upload(String path, File srcFile) throws NetStorageException, IOException {
+		return this.upload(path, srcFile, null, false);
+	}
 
-    public boolean upload(String path, File srcFile, Map<String, String> additionalParams) throws NetStorageException, IOException {
-        return this.upload(path, srcFile, additionalParams, false);
-    }
+	public boolean upload(String path, File srcFile, Map<String, String> additionalParams) throws NetStorageException, IOException {
+		return this.upload(path, srcFile, additionalParams, false);
+	}
 
-    public boolean upload(String path, File srcFile, boolean indexZip) throws NetStorageException, IOException {
-    	return upload(path, srcFile, null, indexZip);
-    }
+	public boolean upload(String path, File srcFile, boolean indexZip) throws NetStorageException, IOException {
+		return upload(path, srcFile, null, indexZip);
+	}
 
-    public boolean upload(String path, File srcFile, Map<String, String> additionalParams, boolean indexZip) throws NetStorageException, IOException {
-        if (!srcFile.exists()) throw new FileNotFoundException(String.format("Src file is not accessible %s", srcFile.toString()));
+	public boolean upload(String path, File srcFile, Map<String, String> additionalParams, boolean indexZip)
+			throws NetStorageException, IOException {
+		if (!srcFile.exists())
+			throw new FileNotFoundException(String.format("Src file is not accessible %s", srcFile.toString()));
 
-        Date mTime = new Date(srcFile.lastModified());
-        byte[] checksum;
-        try (InputStream inputStream = new BufferedInputStream(new FileInputStream(srcFile))) {
-            checksum = Utils.computeHash(inputStream, Utils.HashAlgorithm.SHA256);
-        }
+		Date mTime = new Date(srcFile.lastModified());
+		byte[] checksum;
+		try (InputStream inputStream = new BufferedInputStream(new FileInputStream(srcFile))) {
+			checksum = Utils.computeHash(inputStream, Utils.HashAlgorithm.SHA256);
+		}
 
-        try (InputStream inputStream = new BufferedInputStream(new FileInputStream(srcFile));) {
-	        long size = srcFile.length();
-	        return this.upload(path, inputStream, additionalParams, mTime, size, null, null, checksum, indexZip);
-        }
-    }
+		try (InputStream inputStream = new BufferedInputStream(new FileInputStream(srcFile));) {
+			long size = srcFile.length();
+			return this.upload(path, inputStream, additionalParams, mTime, size, null, null, checksum, indexZip);
+		}
+	}
 
-	public boolean setmd(String path, Map<String, String> additionalParams)  throws NetStorageException, IOException {
+	public boolean setmd(String path, Map<String, String> additionalParams) throws NetStorageException, IOException {
 
 		APIEventBean action = new APIEventBean();
-        action.setAction("setmd");
-        action.setAdditionalParams(additionalParams);
+		action.setAction("setmd");
+		action.setAdditionalParams(additionalParams);
 
-        try (InputStream inputStream = execute("PUT", path, action)) {
-            readToEnd(inputStream);
-        }
-        return true;
+		try (InputStream inputStream = execute("PUT", path, action)) {
+			readToEnd(inputStream);
+		}
+		return true;
 	}
 
 }
